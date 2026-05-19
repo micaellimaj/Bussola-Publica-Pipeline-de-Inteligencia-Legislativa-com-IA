@@ -31,3 +31,23 @@ O projeto está estruturado em cinco etapas principais:
 5. **Automação e Monitoramento**:
   * Workflow no n8n para execução programada do pipeline.
   * Sistema de alertas (Email ou Telegram) para proposições críticas.
+
+
+## Repositório:
+
+```
+Bussola-Publica/
+├── data/               # Arquivos locais (não versionados no Git se forem grandes)
+│   ├── raw/            # Onde ficaria seu dados_camara.db inicial
+│   └── processed/      # Dados após limpeza ou processamento por IA
+├── notebooks/          # Para testes rápidos e visualizações gráficas (arquivos .ipynb)
+├── scripts/            # Onde a mágica acontece, dividido por etapas
+│   ├── extraction/     # Seus scripts atuais de coleta da API
+│   ├── analysis/       # Scripts de EDA (Análise Exploratória)
+│   └── transform/      # Scripts de limpeza e preparação para IA
+├── logs/               # Para salvar os prints/outputs de erro automaticamente
+├── .gitignore          # Essencial para não subir o banco de dados e arquivos PDF
+├── requirements.txt    # Lista de bibliotecas (pandas, requests, fpdf2, etc)
+└── README.md           # Documentação do projeto
+
+```

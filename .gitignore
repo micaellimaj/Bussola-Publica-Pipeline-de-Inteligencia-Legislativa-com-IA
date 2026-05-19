@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Bancos de dados
+*.db
+*.sqlite
+
+# Relatórios e PDFs
+*.pdf
+*.xlsx
+*.csv
+
+# Ambientes virtuais
+venv/
+.pyenv/
