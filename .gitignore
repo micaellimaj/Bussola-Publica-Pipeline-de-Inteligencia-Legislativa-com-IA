@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# .gitignore
+data/
+logs/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
