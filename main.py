@@ -1,9 +1,12 @@
-# main.py
 import os
 import json
 import logging
+import sys
 from datetime import datetime
 from dotenv import load_dotenv
+
+# Importação do validador/diagnóstico
+from src.diagnostico import executar_diagnostico
 
 # Importações dos seus extratores (Etapa 1)
 from src.extraction import (
@@ -15,6 +18,9 @@ from src.extraction import (
 
 # Importação do seu orquestrador de carga (Etapa 3)
 from src.transformation import PipelineEtapa3
+
+# NOVO IMPORT: Importação da Camada de IA (Etapa 4)
+from src.ai_layer import PipelineEtapa4
 
 # Configuração de Log global
 logging.basicConfig(
@@ -33,7 +39,6 @@ def salvar_json_bruto(dados, subpasta, prefixo, pasta_raiz="data/raw"):
     nome_arquivo = f"{prefixo}_{timestamp}.json"
     caminho_completo = os.path.join(pasta_destino, nome_arquivo)
     
-    # O transformador espera uma chave "dados" contendo a lista de itens
     conteudo = {"dados": dados} if isinstance(dados, list) else dados
 
     with open(caminho_completo, "w", encoding="utf-8") as f:
@@ -44,7 +49,22 @@ def salvar_json_bruto(dados, subpasta, prefixo, pasta_raiz="data/raw"):
 
 def rodar_pipeline_completo():
     load_dotenv()
+    
+    # -------------------------------------------------------------------------
+    # VALIDAÇÃO ANTES DA EXECUÇÃO (DIAGNÓSTICO INTEGRADO)
+    # -------------------------------------------------------------------------
+    if not executar_diagnostico():
+        log.error("Pipeline interrompido: O diagnóstico apontou falhas críticas no ambiente.")
+        sys.exit(1)
+
     database_url = os.getenv("DATABASE_URL")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    # Parâmetros operacionais para a IA vindos com segurança do .env
+    dry_run = os.getenv("DRY_RUN", "true").lower() == "true"
+    batch_size = int(os.getenv("BATCH_SIZE", "10"))
+    modelo_ia = os.getenv("MODELO_IA", "gpt-4o-mini")
+    
     raw_dir = "data/raw"
     
     log.info("==================================================")
@@ -56,13 +76,11 @@ def rodar_pipeline_completo():
     # -------------------------------------------------------------------------
     log.info("\n>>> ETAPA 1: EXTRAÇÃO DE DADOS DA API <<<")
     
-    # Instanciando extratores
     api_deputados = DeputadosExtractor()
     api_partidos = PartidosExtractor()
     api_proposicoes = ProposicoesExtractor()
     api_votacoes = VotacoesExtractor()
 
-    # Coletando e salvando fisicamente no formato esperado pelo transformador
     dados_dep = api_deputados.extrair()
     salvar_json_bruto(dados_dep, "deputados", "deputados")
 
@@ -87,9 +105,25 @@ def rodar_pipeline_completo():
     pipeline_etapa3 = PipelineEtapa3(raw_dir=raw_dir, database_url=database_url)
     resumo_carga = pipeline_etapa3.executar()
 
+    log.info(f"Registros atualizados/inseridos no Supabase: {resumo_carga}")
+
+    # -------------------------------------------------------------------------
+    # ETAPA 4: CAMADA DE IA - ENRIQUECIMENTO COM RESUMOS EXECUTIVOS
+    # -------------------------------------------------------------------------
+    log.info("\n>>> ETAPA 4: ENRIQUECIMENTO INTELIGENTE (OPENAI IA) <<<")
+    
+    pipeline_etapa4 = PipelineEtapa4(
+        database_url=database_url,
+        openai_api_key=openai_api_key,
+        modelo=modelo_ia,
+        batch_size=batch_size,
+        dry_run=dry_run
+    )
+    resumo_ia = pipeline_etapa4.executar()
+
     log.info("==================================================")
-    log.info("PIPELINE DE EXTRACAO, TRANSFORMAÇÃO E CARGA CONCLUÍDO!")
-    log.info(f"Registros inseridos no Supabase: {resumo_carga}")
+    log.info("PIPELINE COMPLETO DE DADOS E ENRIQUECIMENTO CONCLUÍDO!")
+    log.info(f"  Métricas Finais da Execução: {resumo_ia}")
     log.info("==================================================")
 
 
