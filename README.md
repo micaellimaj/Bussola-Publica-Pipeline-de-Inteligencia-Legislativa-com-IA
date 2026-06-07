@@ -21,13 +21,6 @@ Transformar o [oceano de dados brutos do legislativo brasileiro](https://dadosab
   <img align="center" alt="n8n" src="https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white" />
 </div>
 
-* **Linguagem**: Python (v3.14 / gerenciado via Poetry)
-* **Manipulação de Dados**: Pandas
-* **Banco de Dados**: PostgreSQL (Hospedado via Supabase)
-* **Orquestração & Automação**: n8n
-* **Inteligência Artificial**: OpenAI API (GPT-4o-mini / GPT-4o para resumos e text-embedding-3-small para classificação)
-* **Integrações e Ferramentas**: SQLAlchemy, Requests, Python-dotenv, Poetry
-
 
 ## <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHdwMnFrc2V2cHM2aGltMHJ5cXcxaXlhNGJneHNkOHl3d3JpNWdqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9LZSPFwk4UkeVUvJRV/giphy.gif" alt="dados_4" width="30" height="30" /> Arquitetura e Roadmap de Desenvolvimento:
 
