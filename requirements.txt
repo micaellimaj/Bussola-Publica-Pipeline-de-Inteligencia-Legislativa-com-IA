@@ -1,0 +1,11 @@
+# =============================================================================
+# Bussola Publica - dependencias do pipeline (espelho do pyproject.toml / Poetry)
+# Para avaliadores que nao usam Poetry:  pip install -r requirements.txt
+# Ambiente: Python >= 3.11
+# =============================================================================
+requests>=2.31
+pandas>=2.2
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+openai>=1.40

@@ -1,0 +1,241 @@
+{
+  "name": "Bussola Publica - Ingestao Diaria 06h",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0001-4a01-9f01-000000000001",
+      "name": "Agendamento 06h (diario)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        300
+      ],
+      "notes": "Dispara todo dia as 06:00 (horario do servidor n8n). Cron: 0 6 * * *"
+    },
+    {
+      "parameters": {
+        "command": "cd /opt/bussola-publica && poetry run python main.py 2>&1"
+      },
+      "id": "a1b2c3d4-0002-4a02-9f02-000000000002",
+      "name": "Rodar Pipeline (main.py)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        80,
+        300
+      ],
+      "notes": "Executa o ponto de entrada do projeto via Poetry. Ajuste o caminho /opt/bussola-publica para a pasta real do repo no servidor. main.py faz a ingestao incremental (Etapa 2) -> transformacao/carga (Etapa 3). A camada de IA (resumo + tema) pode ser encadeada aqui com '&& poetry run python -m src.ai_layer && poetry run python -m src.classificacao_tematica'."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-exit-0",
+              "leftValue": "={{ $json.exitCode }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4a03-9f03-000000000003",
+      "name": "Pipeline OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "notes": "Execute Command retorna exitCode=0 quando o pipeline roda sem erro. Ramo TRUE -> digest de sucesso. Ramo FALSE -> alerta de falha."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  sigla_tipo,\n  numero,\n  ano,\n  COALESCE(tema, 'Sem tema') AS tema,\n  ROUND(COALESCE(tema_score, 0)::numeric, 3) AS tema_score,\n  LEFT(COALESCE(resumo_executivo, ementa), 260) AS resumo,\n  data_apresentacao\nFROM fato_proposicoes\nWHERE created_at >= NOW() - INTERVAL '24 hours'\nORDER BY tema_score DESC NULLS LAST, data_apresentacao DESC\nLIMIT 5;",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0004-4a04-9f04-000000000004",
+      "name": "Consultar Proposicoes do Dia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        180
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CRED_ID",
+          "name": "Supabase Postgres - Bussola Publica"
+        }
+      },
+      "notes": "Conecta direto no Supabase/Postgres. Traz as 5 proposicoes das ultimas 24h, ordenadas pelo tema de maior confianca. Mostra tema (IA - embeddings) e resumo (IA - GPT) no e-mail."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Monta o corpo HTML do digest a partir das proposicoes retornadas pelo Postgres.\nconst itens = $input.all().map(i => i.json);\nconst total = itens.length;\nconst hoje = new Date().toLocaleDateString('pt-BR');\n\nlet linhas = itens.map(p => {\n  const titulo = `${p.sigla_tipo || ''} ${p.numero || ''}/${p.ano || ''}`.trim();\n  return `\n    <tr>\n      <td style=\"padding:8px;border-bottom:1px solid #eee;font-weight:600;\">${titulo}</td>\n      <td style=\"padding:8px;border-bottom:1px solid #eee;\"><span style=\"background:#e8f0fe;color:#1a3e72;padding:2px 8px;border-radius:10px;font-size:12px;\">${p.tema}</span> <small style=\"color:#888;\">(${p.tema_score})</small></td>\n      <td style=\"padding:8px;border-bottom:1px solid #eee;color:#333;\">${(p.resumo || '').replace(/</g,'&lt;')}</td>\n    </tr>`;\n}).join('');\n\nif (total === 0) {\n  linhas = `<tr><td colspan=\"3\" style=\"padding:12px;color:#888;\">Nenhuma proposicao nova nas ultimas 24h.</td></tr>`;\n}\n\nconst html = `\n  <div style=\"font-family:Arial,Helvetica,sans-serif;max-width:680px;margin:auto;\">\n    <h2 style=\"color:#1a3e72;\">Bussola Publica — Radar Legislativo (${hoje})</h2>\n    <p style=\"color:#444;\">Pipeline executado com sucesso as 06h. <b>${total}</b> proposicao(oes) priorizada(s) nas ultimas 24h, classificadas por tema (IA) e com resumo executivo (IA).</p>\n    <table style=\"border-collapse:collapse;width:100%;font-size:14px;\">\n      <thead>\n        <tr style=\"background:#1a3e72;color:#fff;text-align:left;\">\n          <th style=\"padding:8px;\">Proposicao</th>\n          <th style=\"padding:8px;\">Tema (score)</th>\n          <th style=\"padding:8px;\">Resumo executivo</th>\n        </tr>\n      </thead>\n      <tbody>${linhas}</tbody>\n    </table>\n    <p style=\"color:#999;font-size:12px;margin-top:16px;\">Gerado automaticamente pelo pipeline Bussola Publica (n8n + Supabase + OpenAI).</p>\n  </div>`;\n\nreturn [{ json: { total, hoje, html, assunto: `Bussola Publica — ${total} proposicoes novas (${hoje})` } }];\n"
+      },
+      "id": "a1b2c3d4-0005-4a05-9f05-000000000005",
+      "name": "Montar Digest (HTML)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        180
+      ],
+      "notes": "Transforma as linhas do banco em um e-mail HTML legivel. Exibe o tema (embeddings) e o resumo (GPT) — IA aparecendo no produto final, nao como decoracao."
+    },
+    {
+      "parameters": {
+        "fromEmail": "pipeline@bussolapublica.com.br",
+        "toEmail": "mssvargas07@gmail.com",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0006-4a06-9f06-000000000006",
+      "name": "Enviar Digest (Sucesso)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1040,
+        180
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_SMTP_CRED_ID",
+          "name": "SMTP - Bussola Publica"
+        }
+      },
+      "notes": "Envia o digest diario por e-mail (SMTP/Gmail). Troque o destinatario conforme o cliente."
+    },
+    {
+      "parameters": {
+        "fromEmail": "pipeline@bussolapublica.com.br",
+        "toEmail": "mssvargas07@gmail.com",
+        "subject": "[FALHA] Pipeline Bussola Publica nao concluiu (06h)",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;\"><h3 style=\"color:#b00020;\">Falha na execucao do pipeline</h3><p>O pipeline diario das 06h retornou erro (exitCode {{ $json.exitCode }}).</p><pre style=\"background:#f5f5f5;padding:10px;border-radius:6px;white-space:pre-wrap;\">{{ $json.stderr || $json.stdout }}</pre><p>Verifique os logs em /opt/bussola-publica/logs.</p></div>",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0007-4a07-9f07-000000000007",
+      "name": "Alerta de Falha",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        420
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_SMTP_CRED_ID",
+          "name": "SMTP - Bussola Publica"
+        }
+      },
+      "notes": "Se o pipeline falhar, avisa o time imediatamente com o stderr — automacao que nao depende da memoria do analista."
+    }
+  ],
+  "connections": {
+    "Agendamento 06h (diario)": {
+      "main": [
+        [
+          {
+            "node": "Rodar Pipeline (main.py)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rodar Pipeline (main.py)": {
+      "main": [
+        [
+          {
+            "node": "Pipeline OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline OK?": {
+      "main": [
+        [
+          {
+            "node": "Consultar Proposicoes do Dia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta de Falha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Proposicoes do Dia": {
+      "main": [
+        [
+          {
+            "node": "Montar Digest (HTML)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Digest (HTML)": {
+      "main": [
+        [
+          {
+            "node": "Enviar Digest (Sucesso)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "meta": {
+    "templatecredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "bussola-publica"
+    }
+  ]
+}

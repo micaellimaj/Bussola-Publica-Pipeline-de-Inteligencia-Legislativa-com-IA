@@ -1,0 +1,49 @@
+# =============================================================================
+# Bussola Publica - n8n local (Docker Compose)
+# -----------------------------------------------------------------------------
+# Sobe o n8n na sua maquina em http://localhost:5678 com:
+#   - Python + Poetry dentro do container (ver Dockerfile)
+#   - Persistencia dos workflows/credenciais (volume n8n_data)
+#   - Timezone America/Sao_Paulo (o cron 06h respeita o horario de Brasilia)
+#   - O repositorio do projeto montado em /opt/bussola-publica
+#
+# Uso:
+#   docker compose up -d        (sobe em segundo plano)
+#   docker compose logs -f n8n  (acompanha os logs)
+#   docker compose down         (desliga, sem perder dados)
+# =============================================================================
+services:
+  n8n:
+    build: .
+    container_name: bussola-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # --- Acesso / seguranca (login basico ao abrir o n8n) ---
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      # --- Chave de criptografia das credenciais (NAO mude depois de criar credenciais) ---
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      # --- Timezone (faz o agendamento 06h ser horario de Brasilia) ---
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      # --- Permite o no Execute Command (necessario para rodar o pipeline) ---
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - N8N_RUNNERS_ENABLED=true
+      # --- URL base (ajuste se for expor externamente) ---
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      # Dados do n8n (workflows, credenciais, historico de execucoes)
+      - n8n_data:/home/node/.n8n
+      # Repositorio do projeto montado dentro do container.
+      # O caminho vem da variavel REPO_PATH (definida no arquivo .env desta pasta).
+      # A parte da DIREITA (/opt/bussola-publica) e o que o workflow usa - nao mude.
+      - "${REPO_PATH}:/opt/bussola-publica"
+
+volumes:
+  n8n_data:

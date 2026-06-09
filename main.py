@@ -1,131 +1,127 @@
+#!/usr/bin/env python3
+# =============================================================================
+# Bussola Publica - Orquestrador do pipeline (Etapa 5)
+# -----------------------------------------------------------------------------
+# Ponto de entrada chamado pelo no "Rodar Pipeline (main.py)" do workflow n8n:
+#       cd /opt/bussola-publica && poetry run python main.py 2>&1
+#
+# Executa as etapas do desafio NA ORDEM e propaga o resultado pelo exit code:
+#   - exit 0  -> n8n segue para o ramo de SUCESSO (digest por e-mail)
+#   - exit !=0 -> n8n segue para o ramo de FALHA  (alerta por e-mail)
+#
+# Cada etapa e um script ja existente, rodado como subprocesso isolado.
+#
+# Controle por variaveis de ambiente (todas opcionais):
+#   RUN_EXTRACT, RUN_TRANSFORM, RUN_IA_RESUMO, RUN_IA_TEMA = true|false (default true)
+#   CHECK_ONLY = true   -> apenas valida que os scripts existem e sai 0
+# As etapas de IA respeitam o DRY_RUN do .env (true = so estima custo, nao gasta).
+# =============================================================================
+
 import os
-import json
-import logging
 import sys
+import time
+import subprocess
+from pathlib import Path
 from datetime import datetime
-from dotenv import load_dotenv
 
-# Importação do validador/diagnóstico
-from src.diagnostico import executar_diagnostico
-
-# Importações dos seus extratores (Etapa 1)
-from src.extraction import (
-    DeputadosExtractor,
-    PartidosExtractor,
-    ProposicoesExtractor,
-    VotacoesExtractor
-)
-
-# Importação do seu orquestrador de carga (Etapa 3)
-from src.transformation import PipelineEtapa3
-
-# NOVO IMPORT: Importação da Camada de IA (Etapa 4)
-from src.ai_layer import PipelineEtapa4
-
-# Configuração de Log global
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S"
-)
-log = logging.getLogger(__name__)
-
-def salvar_json_bruto(dados, subpasta, prefixo, pasta_raiz="data/raw"):
-    """Salva os dados extraídos em arquivos estruturados que o Transformador espera."""
-    pasta_destino = os.path.join(pasta_raiz, subpasta)
-    os.makedirs(pasta_destino, exist_ok=True)
-    
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nome_arquivo = f"{prefixo}_{timestamp}.json"
-    caminho_completo = os.path.join(pasta_destino, nome_arquivo)
-    
-    conteudo = {"dados": dados} if isinstance(dados, list) else dados
-
-    with open(caminho_completo, "w", encoding="utf-8") as f:
-        json.dump(conteudo, f, ensure_ascii=False, indent=4)
-    
-    log.info(f"  [Arquivo] Dados salvos brutos em: {caminho_completo}")
+# Raiz do repositorio = pasta onde este main.py esta.
+ROOT = Path(__file__).resolve().parent
 
 
-def rodar_pipeline_completo():
-    load_dotenv()
-    
-    # -------------------------------------------------------------------------
-    # VALIDAÇÃO ANTES DA EXECUÇÃO (DIAGNÓSTICO INTEGRADO)
-    # -------------------------------------------------------------------------
-    if not executar_diagnostico():
-        log.error("Pipeline interrompido: O diagnóstico apontou falhas críticas no ambiente.")
-        sys.exit(1)
+def _flag(nome: str, padrao: bool = True) -> bool:
+    """Le uma variavel de ambiente booleana (true/false)."""
+    return os.getenv(nome, "true" if padrao else "false").strip().lower() == "true"
 
-    database_url = os.getenv("DATABASE_URL")
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    
-    # Parâmetros operacionais para a IA vindos com segurança do .env
-    dry_run = os.getenv("DRY_RUN", "true").lower() == "true"
-    batch_size = int(os.getenv("BATCH_SIZE", "10"))
-    modelo_ia = os.getenv("MODELO_IA", "gpt-4o-mini")
-    
-    raw_dir = "data/raw"
-    
-    log.info("==================================================")
-    log.info("INICIANDO PIPELINE COMPLETO - BÚSSOLA PÚBLICA")
-    log.info("==================================================")
 
-    # -------------------------------------------------------------------------
-    # ETAPA 1: EXTRAÇÃO DA API DA CÂMARA
-    # -------------------------------------------------------------------------
-    log.info("\n>>> ETAPA 1: EXTRAÇÃO DE DADOS DA API <<<")
-    
-    api_deputados = DeputadosExtractor()
-    api_partidos = PartidosExtractor()
-    api_proposicoes = ProposicoesExtractor()
-    api_votacoes = VotacoesExtractor()
+# Plano de execucao: (rotulo, caminho relativo do script, flag de ativacao)
+# Caminhos seguem a organizacao por etapa do repositorio.
+STAGES = [
+    ("Etapa 2 - Extracao (API Camara)",        "02_extracao/extracao.py",                      "RUN_EXTRACT"),
+    ("Etapa 3 - Transformacao + Carga",        "03_transformacao/transformacao.py",            "RUN_TRANSFORM"),
+    ("Etapa 4 - IA: Resumo executivo (GPT)",   "04_camada_ia/ia_resumo.py",                    "RUN_IA_RESUMO"),
+    ("Etapa 5 - IA: Classificacao tematica",   "05_automacao_ia/src/classificacao_tematica.py","RUN_IA_TEMA"),
+]
 
-    dados_dep = api_deputados.extrair()
-    salvar_json_bruto(dados_dep, "deputados", "deputados")
 
-    dados_part = api_partidos.extrair()
-    salvar_json_bruto(dados_part, "partidos", "partidos")
+def log(msg: str) -> None:
+    print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
 
-    dados_prop_completos = api_proposicoes.extrair()
-    salvar_json_bruto(dados_prop_completos["proposicoes"], "proposicoes", "proposicoes")
-    salvar_json_bruto(dados_prop_completos["autores"], "proposicoes", "proposicoes_autores")
 
-    dados_vot_completos = api_votacoes.extrair()
-    salvar_json_bruto(dados_vot_completos["votacoes"], "votacoes", "votacoes")
-    salvar_json_bruto(dados_vot_completos["votos"], "votacoes", "votos")
+def stages_ativos():
+    """Retorna a lista de etapas habilitadas pelas flags de ambiente."""
+    ativos = []
+    for rotulo, rel, flag in STAGES:
+        if _flag(flag, padrao=True):
+            ativos.append((rotulo, rel, flag))
+    return ativos
 
-    log.info("\nEtapa 1 finalizada com sucesso! Todos os JSONs brutos salvos em disco.")
 
-    # -------------------------------------------------------------------------
-    # ETAPA 3: TRANSFORMAÇÃO, VALIDAÇÃO E CARGA NO POSTGRESQL (SUPABASE)
-    # -------------------------------------------------------------------------
-    log.info("\n>>> ETAPA 3: TRANSFORMAÇÃO E CARGA NO BANCO <<<")
-    
-    pipeline_etapa3 = PipelineEtapa3(raw_dir=raw_dir, database_url=database_url)
-    resumo_carga = pipeline_etapa3.executar()
+def validar_existencia(ativos) -> list:
+    """Verifica se os scripts das etapas habilitadas existem. Retorna faltantes."""
+    faltando = []
+    for rotulo, rel, _flag_name in ativos:
+        if not (ROOT / rel).is_file():
+            faltando.append(rel)
+    return faltando
 
-    log.info(f"Registros atualizados/inseridos no Supabase: {resumo_carga}")
 
-    # -------------------------------------------------------------------------
-    # ETAPA 4: CAMADA DE IA - ENRIQUECIMENTO COM RESUMOS EXECUTIVOS
-    # -------------------------------------------------------------------------
-    log.info("\n>>> ETAPA 4: ENRIQUECIMENTO INTELIGENTE (OPENAI IA) <<<")
-    
-    pipeline_etapa4 = PipelineEtapa4(
-        database_url=database_url,
-        openai_api_key=openai_api_key,
-        modelo=modelo_ia,
-        batch_size=batch_size,
-        dry_run=dry_run
-    )
-    resumo_ia = pipeline_etapa4.executar()
+def rodar_stage(rotulo: str, rel: str) -> int:
+    """Roda um script como subprocesso. Retorna o exit code."""
+    script = ROOT / rel
+    log("-" * 70)
+    log(f"INICIANDO  -> {rotulo}")
+    log(f"            ({rel})")
+    inicio = time.time()
+    # Usa o mesmo interpretador Python e roda a partir da raiz do repo,
+    # para que caminhos relativos como 'data/raw' resolvam corretamente.
+    proc = subprocess.run([sys.executable, str(script)], cwd=str(ROOT))
+    dur = time.time() - inicio
+    if proc.returncode == 0:
+        log(f"OK         -> {rotulo}  ({dur:.1f}s)")
+    else:
+        log(f"FALHOU     -> {rotulo}  (exit {proc.returncode}, {dur:.1f}s)")
+    return proc.returncode
 
-    log.info("==================================================")
-    log.info("PIPELINE COMPLETO DE DADOS E ENRIQUECIMENTO CONCLUÍDO!")
-    log.info(f"  Métricas Finais da Execução: {resumo_ia}")
-    log.info("==================================================")
+
+def main() -> int:
+    log("=" * 70)
+    log("BUSSOLA PUBLICA - Orquestrador do pipeline (Etapa 5)")
+    log(f"Raiz do projeto: {ROOT}")
+    dry = os.getenv("DRY_RUN", "true").strip().lower() == "true"
+    log(f"DRY_RUN da IA: {dry}  (true = IA so estima custo, nao gasta)")
+
+    ativos = stages_ativos()
+    log("Etapas habilitadas:")
+    for rotulo, rel, _f in ativos:
+        log(f"  - {rotulo}")
+
+    # Confere que todos os scripts existem antes de comecar.
+    faltando = validar_existencia(ativos)
+    if faltando:
+        log("ERRO: scripts nao encontrados:")
+        for rel in faltando:
+            log(f"  -> {rel}")
+        return 1
+
+    # Modo verificacao: nao roda nada, so confirma o plano.
+    if os.getenv("CHECK_ONLY", "false").strip().lower() == "true":
+        log("CHECK_ONLY=true -> plano validado, scripts presentes. Saindo (0).")
+        return 0
+
+    inicio_total = time.time()
+    for rotulo, rel, _f in ativos:
+        rc = rodar_stage(rotulo, rel)
+        if rc != 0:
+            log("=" * 70)
+            log(f"PIPELINE INTERROMPIDO na etapa: {rotulo} (exit {rc}).")
+            log("O n8n deve disparar o ALERTA DE FALHA.")
+            return rc
+
+    dur_total = time.time() - inicio_total
+    log("=" * 70)
+    log(f"PIPELINE CONCLUIDO COM SUCESSO em {dur_total:.1f}s. Todas as etapas OK.")
+    return 0
 
 
 if __name__ == "__main__":
-    rodar_pipeline_completo()
+    sys.exit(main())
