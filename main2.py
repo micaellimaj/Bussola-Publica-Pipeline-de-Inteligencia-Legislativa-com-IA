@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 # Importa os Pipelines unificados da pasta src
 from src.transformation import PipelineEtapa3
 from src.ai_layer import PipelineEtapa4
+from src.classificacao_tematica import PipelineEtapa5
 
 load_dotenv()
 
@@ -17,6 +18,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DRY_RUN = os.getenv("DRY_RUN", "true").lower() == "true"
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "10"))
 MODELO_IA = os.getenv("MODELO_IA", "gpt-4o-mini")
+
+# Parâmetros operacionais para a classificação temática (Etapa 5 - Caminho A)
+MODELO_EMBEDDING = os.getenv("MODELO_EMBEDDING", "text-embedding-3-small")
+LIMIAR_TEMA = float(os.getenv("LIMIAR_TEMA", "0.20"))
 
 RAW_DIR = Path("data/raw")
 DATA_STR = datetime.today().strftime("%Y%m%d")
@@ -47,7 +52,7 @@ if __name__ == "__main__":
         erros.append("DATABASE_URL não encontrada no .env")
     if not OPENAI_API_KEY:
         erros.append("OPENAI_API_KEY não encontrada no .env")
-        
+
     if erros:
         for erro in erros:
             log.error(erro)
@@ -80,6 +85,20 @@ if __name__ == "__main__":
         dry_run=DRY_RUN
     )
     resumo_ia = pipeline_etapa4.executar()
+
+    # -------------------------------------------------------------------------
+    # ETAPA 5: CLASSIFICAÇÃO TEMÁTICA (EMBEDDINGS + SIMILARIDADE DE COSSENO)
+    # -------------------------------------------------------------------------
+    log.info("\n>>> Executando Etapa 5: Classificação Temática (Embeddings) <<<")
+    pipeline_etapa5 = PipelineEtapa5(
+        database_url=DATABASE_URL,
+        openai_api_key=OPENAI_API_KEY,
+        modelo=MODELO_EMBEDDING,
+        batch_size=BATCH_SIZE,
+        dry_run=DRY_RUN,
+        limiar_tema=LIMIAR_TEMA
+    )
+    resumo_tema = pipeline_etapa5.executar()
 
     log.info("=" * 60)
     log.info("PIPELINE RÁPIDO CONCLUÍDO COM SUCESSO!")

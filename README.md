@@ -45,17 +45,30 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 * Modelagem relacional transformando arquivos JSON em estruturas adequadas para tabelas Fato e Dimensão (ex: fato_proposicoes_autores, fato_votacoes, fato_votos).
 * Orquestração e execução da carga incremental em banco de dados PostgreSQL via SQLAlchemy (src/transformation.py).
 
-4. **Camada de Inteligência Artificial** `[EM DESENVOLVIMENTO / PARCIALMENTE IMPLEMENTADO]`
+4. **Camada de Inteligência Artificial** `[CONCLUÍDO]`
 
 * Estruturação da lógica em src/ai_layer.py para enriquecimento analítico inteligente de proposições parlamentares pendentes através da API da OpenAI.
 * Modo de Simulação (Dry Run): Implementação de estimativas financeiras automatizadas de consumo de tokens (Métricas de Custo Estimado em USD/BRL baseadas no modelo gpt-4o-mini) para validação prévia de lotes (Batch) antes do processamento real.
 * Resumo Executivo: Geração automática de resumos simplificados e acionáveis das proposições legislativas pendentes diretamente integrados à base de dados.
-* Próximo passo: Integração completa do cálculo de classificação temática via embeddings (text-embedding-3-small) utilizando similaridade de cosseno.
+* Classificação Temática (Etapa 5 - Caminho A): cada proposição é classificada por embeddings (`text-embedding-3-small`) + similaridade de cosseno contra um catálogo de temas de negócio, gravando `tema`, `tema_score` e `data_tema` em `fato_proposicoes` (`src/classificacao_tematica.py`).
 
-5. **Automação e Monitoramento** `[PLANEJADO]`
+5. **Automação e Monitoramento** `[CONCLUÍDO]`
 
-* Configuração de workflows no n8n para a execução programada do pipeline principal (main.py).
-* Envio de alertas automatizados (via Telegram ou E-mail) contendo relatórios diários de proposições de alto impacto e métricas de custo.
+* Workflow no **n8n** (`n8n/bussola_publica_ingestao_diaria.json`) agendado para **06h diariamente** (cron `0 6 * * *`), executando o pipeline principal (`main.py`) via *Execute Command*.
+* **Notificação automática por e-mail** com o digest do dia: as 5 proposições mais relevantes das últimas 24h, já com **tema (embeddings)** e **resumo executivo (GPT)** — a IA chega ao produto final.
+* **Tratamento de falha:** ramo dedicado que dispara e-mail de alerta com o `stderr` caso o pipeline quebre, sem depender da memória do analista.
+* Passo a passo de importação e credenciais em [`n8n/GUIA_IMPORTACAO_n8n.md`](n8n/GUIA_IMPORTACAO_n8n.md); decisões técnicas e prompts da IA em [`docs/Etapa5_Documentacao_Tecnica.md`](docs/Etapa5_Documentacao_Tecnica.md).
+
+### Evidências (prints)
+
+| Evidência | Print |
+|---|---|
+| Execução do workflow n8n concluída (todos os nós verdes) | ![n8n execução](readme/prints/n8n_execucao_sucesso.jpg) |
+| Digest diário por e-mail (top 5 com tema + resumo executivo) | ![e-mail digest](readme/prints/email_digest.jpg) |
+| `fato_proposicoes` com `tema`/`tema_score` no Supabase | ![tema no Supabase](readme/prints/supabase_tema.jpg) |
+| Cobertura de dados (≥ 30 dias) no Supabase | ![30 dias no Supabase](readme/prints/supabase_30dias.jpg) |
+
+> O Table Editor do Supabase exige login (sem link público no plano Free); os prints acima + a Reference ID do projeto servem como evidência de acesso ao banco.
 
 
 ## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2FuanM5OHhoYTZzZDU3ODlqbmQ4YjNxdm9qd2pxcDZmNmkza2VoNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/0sUBW0QZExZ1HJrmyr/giphy.gif" alt="dados_5" width="30" height="30" /> Modelo de Dados (DWH / Camada Relacional):
@@ -106,6 +119,9 @@ Para suportar as análises legislativas e o enriquecimento com Inteligência Art
 | created_at         | timestamptz | Nullable   | Data/Hora de inserção do registro no banco de dados. |
 | resumo_executivo   | text       | Nullable    | [IA Layer] Resumo analítico simplificado gerado via OpenAI. |
 | data_resumo        | timestamptz | Nullable   | [IA Layer] Timestamp de quando o resumo de IA foi gerado. |
+| tema               | text       | Nullable    | [Etapa 5] Tema classificado via embeddings + cosseno (ex: Saúde, Tributário). |
+| tema_score         | float8     | Nullable    | [Etapa 5] Score de similaridade de cosseno (0 a 1) do tema atribuído. |
+| data_tema          | timestamptz | Nullable   | [Etapa 5] Timestamp em que a classificação temática foi gerada. |
 
 `fato_proposicoes_autores`
 * Tabela associativa que mapeia a autoria ou coautoria de cada proposição legislativa.
@@ -197,7 +213,7 @@ DATABASE_URL=postgresql://usuario:senha@host:5432/banco
 # Obtenha em: https://platform.openai.com/api-keys
 OPENAI_API_KEY=sk-proj-SUA_CHAVE_REAL_AQUI
 
-# --- Configurações do Pipeline de IA (Etapa 4) ---
+# --- Configurações do Pipeline de IA (Etapas 4 e 5) ---
 # DRY_RUN=true  -> Modo Simulação: apenas estima custos de tokens, não consome API e não grava no banco.
 # DRY_RUN=false -> Modo Produção: executa o enriquecimento real e salva os dados.
 DRY_RUN=true
@@ -207,6 +223,10 @@ BATCH_SIZE=10
 
 # Modelo OpenAI escolhido (gpt-4o-mini é ~10x mais barato e ideal para os resumos)
 MODELO_IA=gpt-4o-mini
+
+# Etapa 5 — Classificação temática por embeddings
+MODELO_EMBEDDING=text-embedding-3-small
+LIMIAR_TEMA=0.20
 ```
 
 
@@ -238,13 +258,20 @@ Abaixo está a arquitetura modular implementada no projeto para garantir a separ
 │   ├── proposicoes/               # JSONs de proposições e autores
 │   └── votacoes/                  # JSONs de votações e votos
 ├── docs/                          # Documentações e relatórios das etapas
-│   └── Etapa4_Camada_IA.pdf       # Relatório de especificação da camada de IA
+│   ├── Etapa4_Camada_IA.pdf       # Relatório de especificação da camada de IA
+│   ├── Etapa5_Documentacao_Tecnica.md  # Etapa 5: decisões técnicas + prompts da IA
+│   └── modelo_dados.md            # Modelo dimensional (tabelas e relacionamentos)
+├── n8n/                           # Etapa 5: automação
+│   ├── bussola_publica_ingestao_diaria.json          # Workflow n8n (ingestão 06h + digest)
+│   ├── bussola_publica_ingestao_diaria_WINDOWS.json  # Variante para ambiente Windows
+│   └── GUIA_IMPORTACAO_n8n.md     # Passo a passo de importação e credenciais
 ├── logs/                          # Logs de execução do pipeline
 │   └── transformacao_20260528.log # Registro histórico de transformações
 ├── src/                           # Código-fonte principal do projeto
 │   ├── __pycache__/
 │   ├── _init_.py
-│   ├── ai_layer.py                # Etapa 4: Integração com OpenAI (Resumos/Embeddings)
+│   ├── ai_layer.py                # Etapa 4: Integração com OpenAI (Resumos executivos)
+│   ├── classificacao_tematica.py  # Etapa 5: Classificação temática (embeddings + cosseno)
 │   ├── config.py                  # Configurações globais e variáveis de ambiente
 │   ├── diagnostico.py             # Script de validação e saúde do ambiente
 │   ├── extraction.py              # Etapa 1: Scripts de extração/ingestão da API
