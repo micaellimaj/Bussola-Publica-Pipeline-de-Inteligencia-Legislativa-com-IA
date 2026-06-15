@@ -24,7 +24,7 @@ Transformar o [oceano de dados brutos do legislativo brasileiro](https://dadosab
 
 ## <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHdwMnFrc2V2cHM2aGltMHJ5cXcxaXlhNGJneHNkOHl3d3JpNWdqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9LZSPFwk4UkeVUvJRV/giphy.gif" alt="dados_4" width="30" height="30" /> Arquitetura e Roadmap de Desenvolvimento:
 
-![roadmap](readme/roadmap.png)
+![diagrama](readme/diagrama_pipeline.svg)
 
 O projeto está estruturado em cinco etapas principais. Abaixo está o status atual de desenvolvimento do que já foi mapeado e implementado:
 
@@ -58,6 +58,50 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 * **Notificação automática por e-mail** com o digest do dia: as 5 proposições mais relevantes das últimas 24h, já com **tema (embeddings)** e **resumo executivo (GPT)** — a IA chega ao produto final.
 * **Tratamento de falha:** ramo dedicado que dispara e-mail de alerta com o `stderr` caso o pipeline quebre, sem depender da memória do analista.
 * Passo a passo de importação e credenciais em [`n8n/GUIA_IMPORTACAO_n8n.md`](n8n/GUIA_IMPORTACAO_n8n.md); decisões técnicas e prompts da IA em [`docs/Etapa5_Documentacao_Tecnica.md`](docs/Etapa5_Documentacao_Tecnica.md).
+
+## <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbGRxeDNjenpocXN6M2lsdzZ2Z2toYzIwNHM0ODJ4MjJxdXliaGR6eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1ZIoSmnkIP0ghBiiAw/giphy.gif" alt="dados_4" width="30" height="30" />  Motivo das decisões técnicas:
+
+
+![roadmap](readme/roadmap.png)
+
+1. **Por que orquestrar `main.py` no n8n (Execute Command) em vez de reimplementar a ingestão em nós nativos?**
+
+* A lógica de paginação, retry, validação e carga já está testada em Python. Reescrevê-la em nós HTTP do n8n duplicaria código e criaria duas fontes de verdade. O n8n entra como **orquestrador e camada de notificação**, não como ETL paralelo. O custo dessa escolha é que o n8n precisa rodar no mesmo host do repositório (VPS/Docker/local self-hosted) — documentado no guia.
+
+2. **Por que classificação por embeddings (Caminho A) e não pedir o tema direto à LLM?**
+
+* **Três motivos**: 
+  * **custo** — 1 embedding por ementa com `text-embedding-3-small` custa frações de centavo, muito abaixo de uma chamada de chat por proposição;
+  * **consistência** — a lista de ~11 temas é um catálogo fechado, então a similaridade de cosseno sempre escolhe um rótulo válido, enquanto a LLM poderia inventar categorias novas; 
+  * **auditabilidade** — guardamos o `tema_score`, deixando a classificação transparente e com limiar ajustável (`LIMIAR_TEMA`).
+
+3. **Por que e-mail e não Telegram (nesta entrega) ?**
+
+* E-mail é o canal mais simples de configurar, demonstrar e printar para a avaliação, e é o formato que o cliente corporativo da Bússola Pública já consome. O workflow é trivialmente extensível para Telegram (basta um nó `Telegram` em paralelo ao e-mail de sucesso).
+
+4. **Por que o digest mostra tema + resumo ?**
+
+* Para a IA não ser decoração. O e-mail das 06h traz, para cada proposição priorizada, **o tema (embeddings)** e **o resumo executivo (GPT)**. A IA aparece no produto final que chega ao cliente — exatamente o que o desafio cobra.
+
+5. **Controle de custo de IA:**
+
+* Tanto  (resumo) quanto  (tema) do `ai_layer.py` sobem em `DRY_RUN=true` por padrão: estimam tokens e custo (USD/BRL) **antes** de gastar. Só com `DRY_RUN=false` há chamada real e gravação. Processamento é idempotente — pula o que já tem `resumo_executivo`/`tema`.
+
+
+## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTk3OHU4ajh0M3d3aDZjajJ1bHh2cDV1N3J5Z20yaDBoMGZjcmRncyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l1KVbQDHx8NDa2XBK/giphy.gif" alt="dados_4" width="30" height="30" />  Prompts e parâmetros da camada de IA:
+
+1. **Resumo executivo (Caminho B)**:
+
+* System prompt (perfil de analista) + user prompt com a ementa. Regras: máximo 3 frases, sem jargão, estrutura (1) o que propõe, (2) quem é impactado, (3) ponto de atenção para empresas. Modelo `gpt-4o-mini`, `temperature=0.3`, `max_tokens=300`, `timeout=30`.
+
+
+2. **Classificação temática (Caminho A)**:
+
+* Não usa prompt de chat: usa **embeddings**. Para cada tema do catálogo, uma frase-descrição rica é embedada uma única vez; cada ementa é embedada e comparada por **similaridade de cosseno**. O tema de maior score vence; abaixo de `LIMIAR_TEMA` (0,20) cai em "Outros".
+* Catálogo de temas: Tecnologia e IA · Tributário · Saúde · Trabalho e Previdência · Meio Ambiente · Economia e Finanças · Educação · Segurança Pública · Agronegócio · Infraestrutura e Transporte · Direitos e Cidadania.
+* Custo de referência (mai/2025): `text-embedding-3-small` ≈ US$ 0,02 / 1M tokens. Para ~120 tokens por ementa, classificar 1.000 proposições custa da ordem de US$ 0,002 (poucos centavos de real).
+
+
 
 ### Evidências (prints)
 
@@ -157,6 +201,24 @@ Para suportar as análises legislativas e o enriquecimento com Inteligência Art
 | id_deputado| int4       | Nullable        | ID do parlamentar que votou (Relaciona-se com dim_deputados). |
 | created_at | timestamptz | Nullable       | Data de inserção do registro de voto. |
 
+
+###  <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_5_3" width="20" height="20" /> Relacionamentos:
+
+- `fato_proposicoes` 1—N `fato_proposicoes_autores` (por `id_proposicao`).
+- `fato_votacoes` 1—N `fato_votos` (por `id_votacao`).
+- `fato_votos` N—1 `dim_deputados` (por `id_deputado`).
+- `dim_deputados` N—1 `dim_partidos` (por `sigla_partido` / `sigla`).
+- `fato_proposicoes.tema` alimenta os alertas/digest do workflow n8n da Etapa de automação.
+
+## Critérios de avaliação atendidos
+
+- **Funcionamento:** pipeline roda do início ao fim (extração → carga → IA → notificação).
+- **Modelagem:** modelo estrela preservado; IA adiciona colunas, não quebra o schema.
+- **IA aplicada:** tema (embeddings) e resumo (GPT) chegam ao e-mail do cliente — não é decoração.
+- **Automação:** workflow n8n agendado, com sucesso e falha tratados.
+- **Comunicação:** diagrama, doc técnica, prompts e pitch executivo.
+
+
 ## <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDY4OGlpMW9yZ3JvcHAzamw3NnU3ZHZ3MHBjZDRyOHdtNG16cHRqMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Op1ku9feTAxo1zA8ff/giphy.gif" alt="dados_6" width="30" height="30" /> Como Executar o Projeto:
 
 Siga os passos abaixo para clonar o repositório, configurar o ambiente virtual com o Poetry, definir as variáveis de ambiente e executar o pipeline de inteligência legislativa.
@@ -227,21 +289,109 @@ MODELO_IA=gpt-4o-mini
 # Etapa 5 — Classificação temática por embeddings
 MODELO_EMBEDDING=text-embedding-3-small
 LIMIAR_TEMA=0.20
-```
 
 
-4. **Executar o Pipeline**:
-
-Com o ambiente configurado e as credenciais prontas, você pode rodar o ponto de entrada principal do projeto através do Poetry:
-
-* **Para rodar o pipeline principal**:
+# --- Configurações de Acesso e Sincronização do n8n ---
+N8N_USER=admin
+N8N_PASSWORD=bussola123
+REPO_PATH=C:/Caminho/Ate/O/Projeto/Bussola-Publica-Pipeline-de-Inteligencia-Legislativa-com-IA
 
 ```
-poetry run python main.py
+
+### 3. **Subir a Infraestrutura com Docker**
+
+Com o Docker Desktop aberto e exibindo o status **Engine Running**, execute:
+
+```bash
+docker compose up -d --build
 ```
 
-Se o DRY_RUN estiver definido como true, você verá no console o diagnóstico de custos e o volume de proposições que estão prontas para processamento, garantindo total controle financeiro antes de consumir os créditos da API.
+Este comando irá construir e iniciar todos os containers necessários para o funcionamento do projeto.
 
+---
+
+### 4. **Sincronizar as Dependências Python no Container**
+
+Após os containers estarem em execução, instale as dependências do projeto dentro do container do n8n.
+
+#### Opção A: Via requirements.txt (Recomendado)
+
+Instalação direta utilizando o `pip3` nativo do Linux:
+
+```bash
+docker compose exec -T n8n sh -c "cd /opt/bussola-publica && pip3 install --no-cache-dir --break-system-packages -r requirements.txt"
+```
+
+#### Opção B: Via Poetry
+
+Caso prefira manter o gerenciamento de dependências através do Poetry:
+
+```bash
+docker compose exec -T n8n sh -c "cd /opt/bussola-publica && poetry config cache-dir /home/node/.cache/pypoetry && poetry config virtualenvs.create false && poetry install --no-root"
+```
+
+---
+
+### 5. **Configurar e Executar o Workflow no n8n**
+
+Agora que os containers e as dependências estão prontos, todo o pipeline passa a ser controlado visualmente pelo n8n.
+
+#### Acessar a Interface
+
+Abra o navegador e acesse:
+
+```text
+http://localhost:5678
+```
+
+#### Criar a Conta de Administrador
+
+No primeiro acesso, será exibida a tela **Set up owner account**. Crie o usuário e senha que serão utilizados para administrar sua instância local do n8n.
+
+#### Importar o Workflow
+
+1. No canto superior direito do painel do n8n, clique no menu de três pontos.
+2. Selecione **Import from File**.
+3. Escolha o arquivo:
+
+```text
+workflows/bussola_publica_ingestao_diaria.json
+```
+
+#### Configurar as Credenciais
+
+Após importar o fluxo:
+
+* Configure as credenciais de banco de dados (PostgreSQL / Supabase).
+* Configure as credenciais de e-mail (SMTP), caso utilize notificações.
+
+#### Executar o Pipeline
+
+Para testar toda a esteira de processamento imediatamente:
+
+1. Abra o workflow importado.
+2. Clique em **Execute Workflow**.
+
+A execução percorrerá todas as etapas do pipeline, incluindo:
+
+* Gatilho de agendamento;
+* Coleta das proposições legislativas;
+* Processamento e enriquecimento com IA;
+* Persistência dos dados;
+* Geração do Digest HTML;
+* Envio das notificações configuradas.
+
+---
+
+### 6. **Encerrar os Serviços**
+
+Quando finalizar o desenvolvimento ou desejar desligar a infraestrutura local, execute:
+
+```bash
+docker compose down
+```
+
+Este comando interromperá e removerá os containers criados pelo projeto.
 
 ## <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGU3cXhzeHF5YmhsdmtxdzA1bGg1dWRwMWF6MmZjYWM5MjN2dTg1dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/AvSbLuJ4mVgpl4sG4M/giphy.gif" alt="dados_7" width="30" height="30" />  Estrutura de Pastas e Arquivos:
 
