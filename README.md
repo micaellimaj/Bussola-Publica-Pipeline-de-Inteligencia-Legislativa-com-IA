@@ -142,9 +142,9 @@ A análise do painel legislativo consolidado (com dados mapeados entre **01/06/2
 
 ### <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjlyMG1wb3dkcXRjeG9pcWlsZGNkYWVwN2NlNDd5MmIzZTA4cms0byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/spuwPuxfMgN6OkcVMy/giphy.gif" alt="dados_7_1" width="20" height="20" /> Links do Painel
 
-*   ** Protótipo do Layout (Figma):** Dowload dos [layouts](docs/figma/)
-*   ** Painel Interativo (Power BI Web):** [Acesse o Dashboard Publicado](https://app.powerbi.com/view?r=eyJrIjoiMDQwMjE3NDQtMjExMi00MWExLWFhNTAtNWM3ODAyYzk5M2NlIiwidCI6IjUxZGQ3ZDM4LTYwNzctNDgzNy1hYTE0LWFlNDNmZThiM2ViMCJ9)
-*   ** Arquivo Fonte do Projeto:** Download do arquivo [`LegoDados_Relatorio_Legislativo.pbix`](docs/power-BI/legislativoProjeto.pbix)
+*   **Protótipo do Layout (Figma):** Dowload dos [layouts](docs/figma/)
+*   **Painel Interativo (Power BI Web):** [Acesse o Dashboard Publicado](https://app.powerbi.com/view?r=eyJrIjoiMDQwMjE3NDQtMjExMi00MWExLWFhNTAtNWM3ODAyYzk5M2NlIiwidCI6IjUxZGQ3ZDM4LTYwNzctNDgzNy1hYTE0LWFlNDNmZThiM2ViMCJ9)
+*   **Arquivo Fonte do Projeto:** Download do arquivo [`LegoDados_Relatorio_Legislativo.pbix`](docs/power-BI/legislativoProjeto.pbix)
 
 
 
