@@ -19,8 +19,11 @@ from src.extraction import (
 # Importação do seu orquestrador de carga (Etapa 3)
 from src.transformation import PipelineEtapa3
 
-# NOVO IMPORT: Importação da Camada de IA (Etapa 4)
+# Importação da Camada de IA (Etapa 4)
 from src.ai_layer import PipelineEtapa4
+
+# Importação da Classificação Temática por Embeddings (Etapa 5 - Caminho A)
+from src.classificacao_tematica import PipelineEtapa5
 
 # Configuração de Log global
 logging.basicConfig(
@@ -34,22 +37,22 @@ def salvar_json_bruto(dados, subpasta, prefixo, pasta_raiz="data/raw"):
     """Salva os dados extraídos em arquivos estruturados que o Transformador espera."""
     pasta_destino = os.path.join(pasta_raiz, subpasta)
     os.makedirs(pasta_destino, exist_ok=True)
-    
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     nome_arquivo = f"{prefixo}_{timestamp}.json"
     caminho_completo = os.path.join(pasta_destino, nome_arquivo)
-    
+
     conteudo = {"dados": dados} if isinstance(dados, list) else dados
 
     with open(caminho_completo, "w", encoding="utf-8") as f:
         json.dump(conteudo, f, ensure_ascii=False, indent=4)
-    
+
     log.info(f"  [Arquivo] Dados salvos brutos em: {caminho_completo}")
 
 
 def rodar_pipeline_completo():
     load_dotenv()
-    
+
     # -------------------------------------------------------------------------
     # VALIDAÇÃO ANTES DA EXECUÇÃO (DIAGNÓSTICO INTEGRADO)
     # -------------------------------------------------------------------------
@@ -59,14 +62,18 @@ def rodar_pipeline_completo():
 
     database_url = os.getenv("DATABASE_URL")
     openai_api_key = os.getenv("OPENAI_API_KEY")
-    
+
     # Parâmetros operacionais para a IA vindos com segurança do .env
     dry_run = os.getenv("DRY_RUN", "true").lower() == "true"
     batch_size = int(os.getenv("BATCH_SIZE", "10"))
     modelo_ia = os.getenv("MODELO_IA", "gpt-4o-mini")
-    
+
+    # Parâmetros operacionais para a classificação temática (Etapa 5 - Caminho A)
+    modelo_embedding = os.getenv("MODELO_EMBEDDING", "text-embedding-3-small")
+    limiar_tema = float(os.getenv("LIMIAR_TEMA", "0.20"))
+
     raw_dir = "data/raw"
-    
+
     log.info("==================================================")
     log.info("INICIANDO PIPELINE COMPLETO - BÚSSOLA PÚBLICA")
     log.info("==================================================")
@@ -75,7 +82,7 @@ def rodar_pipeline_completo():
     # ETAPA 1: EXTRAÇÃO DA API DA CÂMARA
     # -------------------------------------------------------------------------
     log.info("\n>>> ETAPA 1: EXTRAÇÃO DE DADOS DA API <<<")
-    
+
     api_deputados = DeputadosExtractor()
     api_partidos = PartidosExtractor()
     api_proposicoes = ProposicoesExtractor()
@@ -101,7 +108,7 @@ def rodar_pipeline_completo():
     # ETAPA 3: TRANSFORMAÇÃO, VALIDAÇÃO E CARGA NO POSTGRESQL (SUPABASE)
     # -------------------------------------------------------------------------
     log.info("\n>>> ETAPA 3: TRANSFORMAÇÃO E CARGA NO BANCO <<<")
-    
+
     pipeline_etapa3 = PipelineEtapa3(raw_dir=raw_dir, database_url=database_url)
     resumo_carga = pipeline_etapa3.executar()
 
@@ -111,7 +118,7 @@ def rodar_pipeline_completo():
     # ETAPA 4: CAMADA DE IA - ENRIQUECIMENTO COM RESUMOS EXECUTIVOS
     # -------------------------------------------------------------------------
     log.info("\n>>> ETAPA 4: ENRIQUECIMENTO INTELIGENTE (OPENAI IA) <<<")
-    
+
     pipeline_etapa4 = PipelineEtapa4(
         database_url=database_url,
         openai_api_key=openai_api_key,
@@ -121,9 +128,25 @@ def rodar_pipeline_completo():
     )
     resumo_ia = pipeline_etapa4.executar()
 
+    # -------------------------------------------------------------------------
+    # ETAPA 5: CLASSIFICAÇÃO TEMÁTICA - EMBEDDINGS + SIMILARIDADE DE COSSENO
+    # -------------------------------------------------------------------------
+    log.info("\n>>> ETAPA 5: CLASSIFICAÇÃO TEMÁTICA (EMBEDDINGS) <<<")
+
+    pipeline_etapa5 = PipelineEtapa5(
+        database_url=database_url,
+        openai_api_key=openai_api_key,
+        modelo=modelo_embedding,
+        batch_size=batch_size,
+        dry_run=dry_run,
+        limiar_tema=limiar_tema
+    )
+    resumo_tema = pipeline_etapa5.executar()
+
     log.info("==================================================")
     log.info("PIPELINE COMPLETO DE DADOS E ENRIQUECIMENTO CONCLUÍDO!")
     log.info(f"  Métricas Finais da Execução: {resumo_ia}")
+    log.info(f"  Classificação Temática: {resumo_tema}")
     log.info("==================================================")
 
 
