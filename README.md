@@ -70,6 +70,14 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 
 > O Table Editor do Supabase exige login (sem link público no plano Free); os prints acima + a Reference ID do projeto servem como evidência de acesso ao banco.
 
+### Dashboard de BI (Power BI — link público, modo leitura)
+
+Como o Table Editor do Supabase não oferece link público no plano Free, a visualização dos dados (≥ 30 dias, já enriquecidos com `tema` e `resumo_executivo`) é publicada como um **dashboard de BI somente-leitura**, que o avaliador pode abrir diretamente, sem login:
+
+🔗 **Dashboard ao vivo (Power BI):** https://app.powerbi.com/view?r=eyJrIjoiMDQwMjE3NDQtMjExMi00MWExLWFhNTAtNWM3ODAyYzk5M2NlIiwidCI6IjUxZGQ3ZDM4LTYwNzctNDgzNy1hYTE0LWFlNDNmZThiM2ViMCJ9
+
+![Dashboard Bússola Pública (Power BI sobre o Supabase)](readme/prints/Dashboard_Bussola_Publica.png)
+
 
 ## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2FuanM5OHhoYTZzZDU3ODlqbmQ4YjNxdm9qd2pxcDZmNmkza2VoNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/0sUBW0QZExZ1HJrmyr/giphy.gif" alt="dados_5" width="30" height="30" /> Modelo de Dados (DWH / Camada Relacional):
 
