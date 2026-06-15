@@ -59,7 +59,14 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 * **Tratamento de falha:** ramo dedicado que dispara e-mail de alerta com o `stderr` caso o pipeline quebre, sem depender da memória do analista.
 * Passo a passo de importação e credenciais em [`n8n/GUIA_IMPORTACAO_n8n.md`](n8n/GUIA_IMPORTACAO_n8n.md); decisões técnicas e prompts da IA em [`docs/Etapa5_Documentacao_Tecnica.md`](docs/Etapa5_Documentacao_Tecnica.md).
 
-## <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbGRxeDNjenpocXN6M2lsdzZ2Z2toYzIwNHM0ODJ4MjJxdXliaGR6eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1ZIoSmnkIP0ghBiiAw/giphy.gif" alt="dados_4" width="30" height="30" />  Motivo das decisões técnicas:
+6. **Visualização de Dados e Analytics (Power BI)** `[CONCLUÍDO]`
+
+* Criação do layout e prototipagem de alta fidelidade das telas utilizando o **Figma**.
+* Conexão nativa do Power BI Desktop ao data warehouse (PostgreSQL) hospedado no **Supabase**.
+* Modelagem e relacionamentos Star Schema replicados no Power BI, com criação de medidas em DAX para contadores e distribuições.
+* Publicação do relatório no Power BI Service e disponibilização de link público para consumo.
+
+## <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbGRxeDNjenpocXN6M2lsdzZ2Z2toYzIwNHM0ODJ4MjJxdXliaGR6eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1ZIoSmnkIP0ghBiiAw/giphy.gif" alt="dados_5" width="30" height="30" />  Motivo das decisões técnicas:
 
 
 ![roadmap](readme/roadmap.png)
@@ -87,8 +94,17 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 
 * Tanto  (resumo) quanto  (tema) do `ai_layer.py` sobem em `DRY_RUN=true` por padrão: estimam tokens e custo (USD/BRL) **antes** de gastar. Só com `DRY_RUN=false` há chamada real e gravação. Processamento é idempotente — pula o que já tem `resumo_executivo`/`tema`.
 
+6. **Por que o deploy público do Power BI não atualiza em tempo real com o n8n?**
 
-## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTk3OHU4ajh0M3d3aDZjajJ1bHh2cDV1N3J5Z20yaDBoMGZjcmRncyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l1KVbQDHx8NDa2XBK/giphy.gif" alt="dados_4" width="30" height="30" />  Prompts e parâmetros da camada de IA:
+* O link de compartilhamento web público (`Embed to website`) no plano gratuito do Power BI Service possui restrições de atualização automática para fontes cloud diretas via DirectQuery sem Gateway corporativo. Portanto, o painel online reflete os dados históricos estáticos da última publicação manual do arquivo `.pbix`. O pipeline no n8n popula o banco de dados Supabase em tempo real, mas o painel público web exige um reenvio do arquivo para refletir o estado mais recente.
+
+7. **Resolução de Problema Crítico: Conexão Power BI ↔ Supabase (Erro de SSL):**
+
+* Durante a configuração inicial, o Power BI Desktop rejeitou a conexão criptografada com o PostgreSQL do Supabase, retornando um erro de handshake SSL. 
+* **Solução:** Foi necessário baixar o certificado raiz do Supabase (`prod-ca-2021.crt`) e instalá-lo no Windows na pasta de **Autoridades de Certificação Raiz Confiáveis** (via `certlm.msc`). Isso permitiu que o driver ODBC/PostgreSQL do Power BI validasse a identidade do servidor e estabelecesse a conexão segura.
+
+
+## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTk3OHU4ajh0M3d3aDZjajJ1bHh2cDV1N3J5Z20yaDBoMGZjcmRncyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l1KVbQDHx8NDa2XBK/giphy.gif" alt="dados_6" width="30" height="30" />  Prompts e parâmetros da camada de IA:
 
 1. **Resumo executivo (Caminho B)**:
 
@@ -101,27 +117,56 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 * Catálogo de temas: Tecnologia e IA · Tributário · Saúde · Trabalho e Previdência · Meio Ambiente · Economia e Finanças · Educação · Segurança Pública · Agronegócio · Infraestrutura e Transporte · Direitos e Cidadania.
 * Custo de referência (mai/2025): `text-embedding-3-small` ≈ US$ 0,02 / 1M tokens. Para ~120 tokens por ementa, classificar 1.000 proposições custa da ordem de US$ 0,002 (poucos centavos de real).
 
+## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3PsZHg2Nmxhejc2eHc3bHB6N3lxaGt4cXJiOXNubmR3Ym1zYTMxdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/TKcnPuNL3VdTah6ymA/giphy.gif" alt="dados_7" width="30" height="30" /> Insights Extraídos do Dashboard (LegoDados)
+
+<div align="center">
+  <p align="center"><b>Visualização das Telas do Painel</b></p>
+  <img src="readme/powerBI/CAPA.png" width="32%" alt="Tela de Início" />
+  <img src="readme/powerBI/TELA1.png" width="32%" alt="Relatório Principal" />
+  <img src="readme/powerBI/TELA2.png" width="32%" alt="Equipe e BI" />
+</div>
+
+<br />
+
+A análise do painel legislativo consolidado (com dados mapeados entre **01/06/2026 e 12/06/2026**) gera diagnósticos acionáveis para consultorias de relações governamentais:
+
+*   **Predomínio Temático de "Segurança Pública" e "Saúde":** Das 200 proposições classificadas por IA, o tema *Saúde* desponta com 39 projetos. Isso indica uma forte janela de oportunidade (ou risco regulatório) para empresas do setor monitorarem o Plenário.
+*   **Eficiência da IA no Filtro de Ruído:** O alto volume de proposições em "Outros" (115) demonstra a precisão do modelo em isolar matérias administrativas ou protocolares, focando o esforço humano apenas no que é estratégico.
+*   **Concentração Política:** A visualização por partido mostra que **PL** e **PT** dominam o volume de proposições, sendo os stakeholders centrais para qualquer estratégia de advocacy.
+*   **Detalhamento Executivo:** O cruzamento direto entre o resumo gerado pela IA e a ementa original permite uma tomada de decisão rápida sem a necessidade de ler o documento íntegro da Câmara.
+
+> [IMPORTANT]
+> **Observação sobre Atualização:** O link de deploy (Power BI Web) reflete os dados da última publicação manual do arquivo `.pbix`. Embora o pipeline (Python + n8n) atualize o banco de dados diariamente, o painel público só apresentará os novos dados após o reenvio do arquivo para o Power BI Service.
+
+---
+
+### <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjlyMG1wb3dkcXRjeG9pcWlsZGNkYWVwN2NlNDd5MmIzZTA4cms0byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/spuwPuxfMgN6OkcVMy/giphy.gif" alt="dados_7_1" width="20" height="20" /> Links do Painel
+
+*   ** Protótipo do Layout (Figma):** Dowload dos [layouts](docs/figma/)
+*   ** Painel Interativo (Power BI Web):** [Acesse o Dashboard Publicado](https://app.powerbi.com/view?r=eyJrIjoiMDQwMjE3NDQtMjExMi00MWExLWFhNTAtNWM3ODAyYzk5M2NlIiwidCI6IjUxZGQ3ZDM4LTYwNzctNDgzNy1hYTE0LWFlNDNmZThiM2ViMCJ9)
+*   ** Arquivo Fonte do Projeto:** Download do arquivo [`LegoDados_Relatorio_Legislativo.pbix`](docs/power-BI/legislativoProjeto.pbix)
 
 
-### Evidências (prints)
 
-| Evidência | Print |
-|---|---|
-| Execução do workflow n8n concluída (todos os nós verdes) | ![n8n execução](readme/prints/n8n_execucao_sucesso.jpg) |
-| Digest diário por e-mail (top 5 com tema + resumo executivo) | ![e-mail digest](readme/prints/email_digest.jpg) |
-| `fato_proposicoes` com `tema`/`tema_score` no Supabase | ![tema no Supabase](readme/prints/supabase_tema.jpg) |
-| Cobertura de dados (≥ 30 dias) no Supabase | ![30 dias no Supabase](readme/prints/supabase_30dias.jpg) |
+## <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYXJ1eHhyZmx5N2FtN29ia2tjMHdoZTRsOGpyNXQ3dDE0ZXVlNXNhciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/S7sG06q4piBfxJ2iPL/giphy.gif" alt="dados_8" width="30" height="30" /> Evidências de Execução:
+
+
+| Recurso | Evidência Visual |
+| :--- | :--- |
+| **Workflow n8n** | ![n8n execução](readme/prints/n8n_execucao_sucesso.jpg) |
+| **Email Digest** | ![e-mail digest](readme/prints/email_digest.jpg) |
+| **Camada de IA** | ![tema no Supabase](readme/prints/supabase_tema.jpg) |
+| **DWH (30 Dias)** | ![30 dias no Supabase](readme/prints/supabase_30dias.jpg) |
 
 > O Table Editor do Supabase exige login (sem link público no plano Free); os prints acima + a Reference ID do projeto servem como evidência de acesso ao banco.
 
-
-## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2FuanM5OHhoYTZzZDU3ODlqbmQ4YjNxdm9qd2pxcDZmNmkza2VoNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/0sUBW0QZExZ1HJrmyr/giphy.gif" alt="dados_5" width="30" height="30" /> Modelo de Dados (DWH / Camada Relacional):
+## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2FuanM5OHhoYTZzZDU3ODlqbmQ4YjNxdm9qd2pxcDZmNmkza2VoNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/0sUBW0QZExZ1HJrmyr/giphy.gif" alt="dados_9" width="30" height="30" /> Modelo de Dados (DWH / Camada Relacional):
 
 Para suportar as análises legislativas e o enriquecimento com Inteligência Artificial, os dados transformados foram estruturados em um modelo relacional (Fatos e Dimensões).
 
 ![logo](readme/schema.png)
 
-### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_5_1" width="20" height="20" /> Tabelas de Dimensão (Dim):
+### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_9_1" width="20" height="20" /> Tabelas de Dimensão (Dim):
 
 `dim_deputados`
 * Armazena os dados cadastrais e identificadores únicos dos deputados federais.
@@ -147,7 +192,7 @@ Para suportar as análises legislativas e o enriquecimento com Inteligência Art
 | nome       | text | Nullable    | Nome completo do partido político. |
 | uri        | text | Nullable    | Link do endpoint oficial do partido na API. |
 
-### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_5_2" width="20" height="20" />  Tabelas de Fato (Fact):
+### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_9_2" width="20" height="20" />  Tabelas de Fato (Fact):
 
 `fato_proposicoes`
 * Entidade central de análise que armazena os textos, metadados e os enriquecimentos de IA (resumos executivos).
@@ -202,7 +247,7 @@ Para suportar as análises legislativas e o enriquecimento com Inteligência Art
 | created_at | timestamptz | Nullable       | Data de inserção do registro de voto. |
 
 
-###  <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_5_3" width="20" height="20" /> Relacionamentos:
+###  <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_9_3" width="20" height="20" /> Relacionamentos:
 
 - `fato_proposicoes` 1—N `fato_proposicoes_autores` (por `id_proposicao`).
 - `fato_votacoes` 1—N `fato_votos` (por `id_votacao`).
@@ -210,7 +255,7 @@ Para suportar as análises legislativas e o enriquecimento com Inteligência Art
 - `dim_deputados` N—1 `dim_partidos` (por `sigla_partido` / `sigla`).
 - `fato_proposicoes.tema` alimenta os alertas/digest do workflow n8n da Etapa de automação.
 
-## Critérios de avaliação atendidos
+## <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExb20yN2Q3NG0wZDJ3bnpjYjIxb2JieWN5dnI0aXNrbzAzc2NqdndybCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/CmeI2Ndgz1B5JWJDbt/giphy.gif" alt="dados_10" width="30" height="30" /> Critérios de avaliação atendidos
 
 - **Funcionamento:** pipeline roda do início ao fim (extração → carga → IA → notificação).
 - **Modelagem:** modelo estrela preservado; IA adiciona colunas, não quebra o schema.
@@ -219,18 +264,75 @@ Para suportar as análises legislativas e o enriquecimento com Inteligência Art
 - **Comunicação:** diagrama, doc técnica, prompts e pitch executivo.
 
 
-## <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDY4OGlpMW9yZ3JvcHAzamw3NnU3ZHZ3MHBjZDRyOHdtNG16cHRqMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Op1ku9feTAxo1zA8ff/giphy.gif" alt="dados_6" width="30" height="30" /> Como Executar o Projeto:
+## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNGgzd21kbXZjNWVucm5mcGd4M2VhcmtxNnhyanRuM2JuZXE2eTV2bSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/VIWyDnerbiT4wfVTtt/giphy.gif" alt="dados_11" width="30" height="30" /> Equipe (Squad LegoDados):
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" valign="top" width="25%">
+        <img src="readme/team/Micael.png" width="120px" style="border-radius: 30%;" alt="Micael Lima"/><br />
+        <b>Micael Lima</b><br />
+        <sup>Data Analytics & AI Engineer</sup><br />
+        <small>Python • SQL • Power BI • AI Automation</small><br /><br />
+        <a href="https://github.com/micaellimaj" target="_blank">
+          <img src="https://img.shields.io/badge/-GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub" />
+        </a>
+        <a href="https://www.linkedin.com/in/micael-lima-data-analytics-ia-engineer/" target="_blank">
+          <img src="https://img.shields.io/badge/-LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn" />
+        </a>
+      </td>
+      <td align="center" valign="top" width="25%">
+        <img src="readme/team/Guilherme.png" width="120px" style="border-radius: 30%;" alt="Guilherme Sobral"/><br />
+        <b>Guilherme Sobral</b><br />
+        <sup>Analista de Dados / BI</sup><br />
+        <small>Power BI • SQL • Excel • BI</small><br /><br />
+        <a href="https://github.com/Sobral-git" target="_blank">
+          <img src="https://img.shields.io/badge/-GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub" />
+        </a>
+        <a href="https://www.linkedin.com/in/guilherme-sobral-santos/" target="_blank">
+          <img src="https://img.shields.io/badge/-LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn" />
+        </a>
+      </td>
+      <td align="center" valign="top" width="25%">
+        <img src="readme/team/Heitor.png" width="120px" style="border-radius: 30%;" alt="Heitor Nogueira"/><br />
+        <b>Heitor Nogueira</b><br />
+        <sup>Inteligência de Negócios</sup><br />
+        <small>BI • SQL • Excel • MIS</small><br /><br />
+        <a href="https://github.com/heitorgraciani" target="_blank">
+          <img src="https://img.shields.io/badge/-GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub" />
+        </a>
+        <a href="https://www.linkedin.com/in/heitor-graciani-nogueira-35201b10a/" target="_blank">
+          <img src="https://img.shields.io/badge/-LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn" />
+        </a>
+      </td>
+      <td align="center" valign="top" width="25%">
+        <img src="readme/team/Marlom.png" width="120px" style="border-radius: 30%;" alt="Marlon Vargas"/><br />
+        <b>Marlon Vargas</b><br />
+        <sup>Power BI Specialist</sup><br />
+        <small>Data Analyst • Data Engineer • Power Apps</small><br /><br />
+        <a href="https://github.com/Mssvargas" target="_blank">
+          <img src="https://img.shields.io/badge/-GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub" />
+        </a>
+        <a href="https://www.linkedin.com/in/marlonssv/" target="_blank">
+          <img src="https://img.shields.io/badge/-LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn" />
+        </a>
+      </td>
+    </tr>
+  </table>
+</div>
+
+## <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDY4OGlpMW9yZ3JvcHAzamw3NnU3ZHZ3MHBjZDRyOHdtNG16cHRqMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Op1ku9feTAxo1zA8ff/giphy.gif" alt="dados_12" width="30" height="30" /> Como Executar o Projeto:
 
 Siga os passos abaixo para clonar o repositório, configurar o ambiente virtual com o Poetry, definir as variáveis de ambiente e executar o pipeline de inteligência legislativa.
 
-### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTV4ZGFjc3VoZnJvbWs0YW00dXowMGk2OG0wcmVxcWtudmFxbm8xbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/dv7sW46M17UQ36WVBT/giphy.gif" alt="dados_6_1" width="20" height="20" /> **Pré-requisitos**:
+### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTV4ZGFjc3VoZnJvbWs0YW00dXowMGk2OG0wcmVxcWtudmFxbm8xbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/dv7sW46M17UQ36WVBT/giphy.gif" alt="dados_12_1" width="20" height="20" /> **Pré-requisitos**:
 
 Antes de começar, certifique-se de ter instalado em sua máquina:
 * **Python** (versão ^3.11 requisitada pelo projeto)
 * **Poetry** (gerenciador de pacotes e ambientes virtuais)
 * **Git**
 
-### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTV4ZGFjc3VoZnJvbWs0YW00dXowMGk2OG0wcmVxcWtudmFxbm8xbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/dv7sW46M17UQ36WVBT/giphy.gif" alt="dados_6_2" width="20" height="20" /> **Passo a Passo**:
+### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTV4ZGFjc3VoZnJvbWs0YW00dXowMGk2OG0wcmVxcWtudmFxbm8xbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/dv7sW46M17UQ36WVBT/giphy.gif" alt="dados_12_2" width="20" height="20" /> **Passo a Passo**:
 
 1. **Clonar o Repositório e Acessar a Pasta**:
 Abra o seu terminal e execute os comandos abaixo para clonar o projeto e entrar no diretório raiz:
@@ -355,7 +457,7 @@ No primeiro acesso, será exibida a tela **Set up owner account**. Crie o usuár
 3. Escolha o arquivo:
 
 ```text
-workflows/bussola_publica_ingestao_diaria.json
+n8n/bussola_publica_ingestao_diaria.json
 ```
 
 #### Configurar as Credenciais
@@ -393,7 +495,7 @@ docker compose down
 
 Este comando interromperá e removerá os containers criados pelo projeto.
 
-## <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGU3cXhzeHF5YmhsdmtxdzA1bGg1dWRwMWF6MmZjYWM5MjN2dTg1dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/AvSbLuJ4mVgpl4sG4M/giphy.gif" alt="dados_7" width="30" height="30" />  Estrutura de Pastas e Arquivos:
+## <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGU3cXhzeHF5YmhsdmtxdzA1bGg1dWRwMWF6MmZjYWM5MjN2dTg1dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/AvSbLuJ4mVgpl4sG4M/giphy.gif" alt="dados_13" width="30" height="30" />  Estrutura de Pastas e Arquivos:
 
 Abaixo está a arquitetura modular implementada no projeto para garantir a separação de responsabilidades em cada etapa do pipeline:
 
