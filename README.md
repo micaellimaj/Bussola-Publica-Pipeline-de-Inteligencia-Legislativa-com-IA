@@ -153,10 +153,10 @@ A análise do painel legislativo consolidado (com dados mapeados entre **01/06/2
 
 | Recurso | Evidência Visual |
 | :--- | :--- |
-| **Workflow n8n** | ![n8n execução](readme/prints/n8n_execucao_sucesso.jpg) |
+| **DWH (30 Dias)**  | ![30 dias supabase](readme/prints/n8n_execucao_sucesso.jpg) |
 | **Email Digest** | ![e-mail digest](readme/prints/email_digest.jpg) |
 | **Camada de IA** | ![tema no Supabase](readme/prints/supabase_tema.jpg) |
-| **DWH (30 Dias)** | ![30 dias no Supabase](readme/prints/supabase_30dias.jpg) |
+|  **Workflow n8n**| ![n8n execução](readme/prints/supabase_30dias.jpg) |
 
 > O Table Editor do Supabase exige login (sem link público no plano Free); os prints acima + a Reference ID do projeto servem como evidência de acesso ao banco.
 
