@@ -135,7 +135,7 @@ A análise do painel legislativo consolidado (com dados mapeados entre **01/06/2
 *   **Concentração Política:** A visualização por partido mostra que **PL** e **PT** dominam o volume de proposições, sendo os stakeholders centrais para qualquer estratégia de advocacy.
 *   **Detalhamento Executivo:** O cruzamento direto entre o resumo gerado pela IA e a ementa original permite uma tomada de decisão rápida sem a necessidade de ler o documento íntegro da Câmara.
 
-> [IMPORTANT]
+> [IMPORTANTE]
 > **Observação sobre Atualização:** O link de deploy (Power BI Web) reflete os dados da última publicação manual do arquivo `.pbix`. Embora o pipeline (Python + n8n) atualize o banco de dados diariamente, o painel público só apresentará os novos dados após o reenvio do arquivo para o Power BI Service.
 
 ---
