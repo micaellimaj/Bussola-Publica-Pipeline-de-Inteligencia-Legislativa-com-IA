@@ -540,3 +540,28 @@ Abaixo está a arquitetura modular implementada no projeto para garantir a separ
 └── README.md                      # Documentação do projeto
 
 ```
+
+## <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzl5enFiZ2FsY2c2YmEyNnNyNWgyYmw4dTR3MzFyYTJqajYycXpvNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U7P5euFXYtCOFNCbmY/giphy.gif" alt="dados_14" width="30" height="30" /> Conclusão e Aprendizados:
+
+Este projeto marca a consolidação prática dos conhecimentos adquiridos ao longo da **Fase 1 (Fundamentos e Primeiros Pipelines)** da pós-graduação em Engenharia de Dados e Inteligência Artificial da **Xperiun (XP Educação)**. A construção desta esteira de inteligência legislativa permitiu aplicar de ponta a ponta as seguintes disciplinas e competências modulares:
+
+* **Modelagem Relacional & DWH:** Estruturação lógica e física de tabelas Fato e Dimensão utilizando PostgreSQL (Supabase) via SQLAlchemy, garantindo o armazenamento de dados históricos por mais de 30 dias.
+* **Manipulação e Limpeza de Dados:** Desenvolvimento de rotinas robustas em Python com a biblioteca Pandas para tratamento de paginação da API da Câmara, saneamento de strings e normalização de payloads brutos (Camada Bronze para Silver).
+* **Automação e Orquestração Low-Code:** Integração de scripts nativos em Python dentro do ecossistema n8n através de containers Docker, programando cronjobs diários e gerenciando fluxos alternativos de alertas e falhas (notificações automatizadas).
+* **Engenharia de Prompt e IA Generativa:** Implementação prática de LLMs (`gpt-4o-mini`) para geração de resumos executivos acionáveis e enriquecimento de dados por meio de embeddings (`text-embedding-3-small`) combinados com similaridade de cosseno.
+* **Colaboração e DevOps:** Controle de versão profissional via Git/GitHub, organização de branches, documentação técnica clara e isolamento de ambientes virtuais com o Poetry.
+
+---
+
+### <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzl5enFiZ2FsY2c2YmEyNnNyNWgyYmw4dTR3MzFyYTJqajYycXpvNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U7P5euFXYtCOFNCbmY/giphy.gif" alt="dados_14" width="30" height="30" /> Agradecimentos:
+
+Agradecemos primeiramente à **Xperiun / XP Educação** e ao corpo docente (Ítalo Mesquita, Leon Solón, César Germano, Iago Braz) por fornecerem a base teórica e os insights práticos que viabilizaram o desenvolvimento de arquiteturas modernas e integradas.
+
+Por fim, expressamos nosso sincero agradecimento a cada integrante do **Squad LegoDados**. A sinergia, dedicação técnica e o esforço mútuo durante as madrugadas de código, testes de API e refinamento do dashboard no Power BI foram os verdadeiros pilares para transformar dados legislativos complexos em um produto final de alto valor estratégico.
+
+<br />
+<p align="center">
+  <kbd>
+    <b>🧱 Assim como cada bloco de LEGO se encaixa perfeitamente para dar vida a grandes estruturas, nossa arquitetura une dados, IA e orquestração para construir uma visão legislativa sólida, transparente e indestrutível. 🧱</b>
+  </kbd>
+</p>
