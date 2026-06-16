@@ -563,10 +563,10 @@ Este comando interromperá e removerá os containers criados pelo projeto.
     </tr>
     <tr>
       <td>
-        <img src="readme/identidade//relatorio.png" width="250px" height="250px">
+        <img src="readme/identidade/pitch.png" width="250px" height="250px">
       </td>
       <td>
-        <img src="readme/identidade/pitch.png" width="250px" height="250px">
+        <img src="readme/identidade/relatorio.png" width="250px" height="250px">
       </td>
     </tr>
   </table>
