@@ -552,12 +552,12 @@ Este comando interromperá e removerá os containers criados pelo projeto.
     <tr>
       <td>
         <b>
-          <a href="https://canva.link/asl0640ohoj05h6">Relatório Técnico (CLIQUE) </a>
+          <a href="https://canva.link/asl0640ohoj05h6">Pitch - Negócios (CLIQUE)  </a>
         </b>
       </td>
       <td>
         <b>
-          <a href="https://gamma.app/docs/SQUAD-LegoDados-s83lzb6w7v4a9kh">Pitch - Negócios (CLIQUE) </a>
+          <a href="https://gamma.app/docs/SQUAD-LegoDados-s83lzb6w7v4a9kh">Relatório Técnico (CLIQUE) </a>
         </b>
       </td>
     </tr>
