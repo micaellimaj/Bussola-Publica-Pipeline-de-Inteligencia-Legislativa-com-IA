@@ -1,6 +1,6 @@
 # <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMnZqZHNscWsxb3MzcmxkdGVuMGUxMWFwNnpodHczYWQ3eTY3OWJqMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/YnUcQkUvPdHMmkLBZn/giphy.gif" alt="dados_1" width="50" height="50" /> SQUAD: LegoDados - Projeto de Inteligência Legislativa & Engenharia de dados
 
-![logo](readme/legodadosbanner.png)
+![logo](readme/identidade/legodadosbanner.png)
 
 
 Este repositório contém o Projeto Integrador da pós-graduação em Engenharia de Dados e Inteligência Artificial. O objetivo é desenvolver um pipeline de dados completo (ETL) que automatiza a captura, organização e análise de dados da API de Dados Abertos da Câmara dos Deputados.
@@ -24,7 +24,7 @@ Transformar o [oceano de dados brutos do legislativo brasileiro](https://dadosab
 
 ## <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHdwMnFrc2V2cHM2aGltMHJ5cXcxaXlhNGJneHNkOHl3d3JpNWdqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9LZSPFwk4UkeVUvJRV/giphy.gif" alt="dados_4" width="30" height="30" /> Arquitetura e Roadmap de Desenvolvimento:
 
-![diagrama](readme/diagrama_pipeline.svg)
+![diagrama](readme/arquitetura/diagrama_pipeline.jpeg)
 
 O projeto está estruturado em cinco etapas principais. Abaixo está o status atual de desenvolvimento do que já foi mapeado e implementado:
 
@@ -69,7 +69,7 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 ## <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbGRxeDNjenpocXN6M2lsdzZ2Z2toYzIwNHM0ODJ4MjJxdXliaGR6eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1ZIoSmnkIP0ghBiiAw/giphy.gif" alt="dados_5" width="30" height="30" />  Motivo das decisões técnicas:
 
 
-![roadmap](readme/roadmap.png)
+![roadmap](readme/arquitetura/roadmap.png)
 
 1. **Por que orquestrar `main.py` no n8n (Execute Command) em vez de reimplementar a ingestão em nós nativos?**
 
@@ -104,9 +104,9 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 * **Solução:** Foi necessário baixar o certificado raiz do Supabase (`prod-ca-2021.crt`) e instalá-lo no Windows na pasta de **Autoridades de Certificação Raiz Confiáveis** (via `certlm.msc`). Isso permitiu que o driver ODBC/PostgreSQL do Power BI validasse a identidade do servidor e estabelecesse a conexão segura.
 
 
-## Prompts e lógica utilizados na Camada de IA
+## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTk3OHU4ajh0M3d3aDZjajJ1bHh2cDV1N3J5Z20yaDBoMGZjcmRncyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l1KVbQDHx8NDa2XBK/giphy.gif" alt="dados_6" width="30" height="30" />  Prompts e Lógica da camada de IA:
 
-### Caminho B — Resumo Executivo (`src/ai_layer.py`)
+###  Caminho B — Resumo Executivo (`src/ai_layer.py`)
 
 Modelo: **gpt-4o-mini** (10x mais barato que o gpt-4o, qualidade adequada para resumos de 3 frases).
 
@@ -214,7 +214,7 @@ A análise do painel legislativo consolidado (com dados mapeados entre **01/06/2
 
 Para suportar as análises legislativas e o enriquecimento com Inteligência Artificial, os dados transformados foram estruturados em um modelo relacional (Fatos e Dimensões).
 
-![logo](readme/schema.png)
+![logo](readme/arquitetura/schema.png)
 
 ### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3cxYXpwZm00OW9ocDA5a3NrczMwM284Y2Mya3E3cmhyNnRldmk3ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9NDxo04budFf554AWO/giphy.gif" alt="dados_9_1" width="20" height="20" /> Tabelas de Dimensão (Dim):
 
