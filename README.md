@@ -590,6 +590,10 @@ Abaixo está a arquitetura modular implementada no projeto para garantir a separ
 └── README.md                      # Documentação do projeto
 
 ```
+## Segurança
+
+* O arquivo `.env` (com `DATABASE_URL` e `OPENAI_API_KEY` reais) **não é versionado** — está no `.gitignore`. Use sempre o `.env.example` como modelo.
+* O workflow do n8n usa **placeholders** de credencial (`REPLACE_POSTGRES_CRED_ID`, `REPLACE_SMTP_CRED_ID`); as credenciais reais ficam apenas na sua instância local do n8n.
 
 ## <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzl5enFiZ2FsY2c2YmEyNnNyNWgyYmw4dTR3MzFyYTJqajYycXpvNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U7P5euFXYtCOFNCbmY/giphy.gif" alt="dados_14" width="30" height="30" /> Conclusão e Aprendizados:
 
