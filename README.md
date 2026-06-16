@@ -553,7 +553,7 @@ Este projeto marca a consolidação prática dos conhecimentos adquiridos ao lon
 
 ---
 
-### <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzl5enFiZ2FsY2c2YmEyNnNyNWgyYmw4dTR3MzFyYTJqajYycXpvNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/U7P5euFXYtCOFNCbmY/giphy.gif" alt="dados_14" width="30" height="30" /> Agradecimentos:
+### <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExc2lsMWwyYzRmdDFwYXhibHNteW9nYTg2cnltZXU1cmhvYzB5NHlneCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/qwYmEIimWmePXLRPKG/giphy.gif" alt="dados_14_1" width="20" height="20" /> Agradecimentos:
 
 Agradecemos primeiramente à **Xperiun / XP Educação** e ao corpo docente (Ítalo Mesquita, Leon Solón, César Germano, Iago Braz) por fornecerem a base teórica e os insights práticos que viabilizaram o desenvolvimento de arquiteturas modernas e integradas.
 
