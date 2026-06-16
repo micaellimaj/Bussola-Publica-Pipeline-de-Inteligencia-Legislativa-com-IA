@@ -545,33 +545,70 @@ docker compose down
 
 Este comando interromperá e removerá os containers criados pelo projeto.
 
+## <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmR4MWd6cGF0ZDlteHVhajZnczMweDAzcnMxOHQ4cHE5dXM3eXZuMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/qaHWmNBTKPo1uljTIZ/giphy.gif" alt="dados" width="30" height="30" /> Relatório Técnico e Pitch do Projeto:
+
+<div align="center">
+  <table>
+    <tr>
+      <td>
+        <b>
+          <a href="https://canva.link/asl0640ohoj05h6">Relatório Técnico (CLIQUE) </a>
+        </b>
+      </td>
+      <td>
+        <b>
+          <a href="https://gamma.app/docs/SQUAD-LegoDados-s83lzb6w7v4a9kh">Pitch - Negócios (CLIQUE) </a>
+        </b>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <img src="readme/identidade//relatorio.png" width="250px" height="250px">
+      </td>
+      <td>
+        <img src="readme/identidade/pitch.png" width="250px" height="250px">
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+
 ## <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGU3cXhzeHF5YmhsdmtxdzA1bGg1dWRwMWF6MmZjYWM5MjN2dTg1dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/AvSbLuJ4mVgpl4sG4M/giphy.gif" alt="dados_13" width="30" height="30" />  Estrutura de Pastas e Arquivos:
 
 Abaixo está a arquitetura modular implementada no projeto para garantir a separação de responsabilidades em cada etapa do pipeline:
 
 
-```
 
+```
 ├── .venv/                         # Ambiente virtual local
 ├── .vscode/                       # Configurações do editor (settings.json)
-├── data_raw/                      # Data Lake - Camada Bronze (Arquivos JSON brutos)
+├── data\raw/                      # Data Lake - Camada Bronze (Arquivos JSON brutos)
 │   ├── deputados/                 # JSONs de deputados com timestamp
 │   ├── partidos/                  # JSONs de partidos
 │   ├── proposicoes/               # JSONs de proposições e autores
 │   └── votacoes/                  # JSONs de votações e votos
 ├── docs/                          # Documentações e relatórios das etapas
+│   ├── apresentacoes/             # Arquivos e materiais de apresentação do projeto
+│   ├── figma/                     # Arquivos ou links do design de interface
+│   ├── power-BI/                  # Arquivo fonte (.pbix) e documentação do dashboard
 │   ├── Etapa4_Camada_IA.pdf       # Relatório de especificação da camada de IA
-│   ├── Etapa5_Documentacao_Tecnica.md  # Etapa 5: decisões técnicas + prompts da IA
+│   ├── Etapa5_Documentacao_Tecnica.md # Etapa 5: decisões técnicas + prompts da IA
 │   └── modelo_dados.md            # Modelo dimensional (tabelas e relacionamentos)
-├── n8n/                           # Etapa 5: automação
-│   ├── bussola_publica_ingestao_diaria.json          # Workflow n8n (ingestão 06h + digest)
-│   ├── bussola_publica_ingestao_diaria_WINDOWS.json  # Variante para ambiente Windows
-│   └── GUIA_IMPORTACAO_n8n.md     # Passo a passo de importação e credenciais
 ├── logs/                          # Logs de execução do pipeline
-│   └── transformacao_20260528.log # Registro histórico de transformações
+├── n8n/                           # Etapa 5: automação
+│   ├── bussola_publica_ingestao_diaria_WINDOWS.json # Variante para ambiente Windows
+│   ├── bussola_publica_ingestao_diaria.json         # Workflow n8n (ingestão 06h + digest)
+│   └── GUIA_IMPORTACAO_n8n.md     # Passo a passo de importação e credenciais
+├── readme/                        # Recursos e mídias visuais do README
+│   ├── arquitetura/               # Diagramas e fluxogramas da arquitetura
+│   ├── identidade/                # Elementos visuais e logos do projeto
+│   ├── powerBI/                   # Prints das telas do painel Power BI
+│   ├── prints/                    # Prints das evidências do projeto (Supabase/n8n)
+│   └── team/                      # Fotos individuais dos integrantes do squad
 ├── src/                           # Código-fonte principal do projeto
 │   ├── __pycache__/
-│   ├── _init_.py
+│   ├── __init__.py
 │   ├── ai_layer.py                # Etapa 4: Integração com OpenAI (Resumos executivos)
 │   ├── classificacao_tematica.py  # Etapa 5: Classificação temática (embeddings + cosseno)
 │   ├── config.py                  # Configurações globais e variáveis de ambiente
@@ -590,6 +627,7 @@ Abaixo está a arquitetura modular implementada no projeto para garantir a separ
 └── README.md                      # Documentação do projeto
 
 ```
+
 ## Segurança
 
 * O arquivo `.env` (com `DATABASE_URL` e `OPENAI_API_KEY` reais) **não é versionado** — está no `.gitignore`. Use sempre o `.env.example` como modelo.
