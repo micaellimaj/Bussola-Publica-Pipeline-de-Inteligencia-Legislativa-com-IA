@@ -104,18 +104,68 @@ O projeto está estruturado em cinco etapas principais. Abaixo está o status at
 * **Solução:** Foi necessário baixar o certificado raiz do Supabase (`prod-ca-2021.crt`) e instalá-lo no Windows na pasta de **Autoridades de Certificação Raiz Confiáveis** (via `certlm.msc`). Isso permitiu que o driver ODBC/PostgreSQL do Power BI validasse a identidade do servidor e estabelecesse a conexão segura.
 
 
-## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTk3OHU4ajh0M3d3aDZjajJ1bHh2cDV1N3J5Z20yaDBoMGZjcmRncyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l1KVbQDHx8NDa2XBK/giphy.gif" alt="dados_6" width="30" height="30" />  Prompts e parâmetros da camada de IA:
+## Prompts e lógica utilizados na Camada de IA
 
-1. **Resumo executivo (Caminho B)**:
+### Caminho B — Resumo Executivo (`src/ai_layer.py`)
 
-* System prompt (perfil de analista) + user prompt com a ementa. Regras: máximo 3 frases, sem jargão, estrutura (1) o que propõe, (2) quem é impactado, (3) ponto de atenção para empresas. Modelo `gpt-4o-mini`, `temperature=0.3`, `max_tokens=300`, `timeout=30`.
+Modelo: **gpt-4o-mini** (10x mais barato que o gpt-4o, qualidade adequada para resumos de 3 frases).
 
+**System prompt:**
+```
+Você é um analista legislativo sênior da consultoria Bússola Pública.
+Sua função é transformar ementas técnicas de proposições da Câmara dos Deputados
+em resumos claros e acionáveis para executivos e áreas de relações governamentais.
 
-2. **Classificação temática (Caminho A)**:
+Regras para o resumo:
+- Máximo 3 frases objetivas
+- Linguagem direta, sem jargão jurídico
+- Estrutura: (1) O que propõe, (2) Quem/o que é impactado, (3) Ponto de atenção para empresas
+- Se a ementa for muito técnica ou vaga, informe isso claramente
+- Responda APENAS com o resumo, sem introduções como 'O resumo é:' ou 'Esta proposição...'
+```
 
-* Não usa prompt de chat: usa **embeddings**. Para cada tema do catálogo, uma frase-descrição rica é embedada uma única vez; cada ementa é embedada e comparada por **similaridade de cosseno**. O tema de maior score vence; abaixo de `LIMIAR_TEMA` (0,20) cai em "Outros".
-* Catálogo de temas: Tecnologia e IA · Tributário · Saúde · Trabalho e Previdência · Meio Ambiente · Economia e Finanças · Educação · Segurança Pública · Agronegócio · Infraestrutura e Transporte · Direitos e Cidadania.
-* Custo de referência (mai/2025): `text-embedding-3-small` ≈ US$ 0,02 / 1M tokens. Para ~120 tokens por ementa, classificar 1.000 proposições custa da ordem de US$ 0,002 (poucos centavos de real).
+**User prompt (template):**
+```
+Proposição: {sigla_tipo} {numero}/{ano}
+
+Ementa oficial:
+{ementa}
+
+Gere o resumo executivo:
+```
+
+O resumo gerado é gravado em `fato_proposicoes.resumo_executivo` (+ `data_resumo`), e um backup local em JSON é salvo em `data/processed/`.
+
+### Caminho A — Classificação Temática por Embeddings (`src/classificacao_tematica.py`)
+
+Modelo: **text-embedding-3-small** (~$0.00002 / 1K tokens).
+
+1. Gera o embedding da `ementa` de cada proposição pendente (`tema IS NULL`).
+   
+2. Gera, uma única vez por execução (com cache em memória), o embedding de cada um dos ~11 temas do catálogo de negócio — cada tema é descrito por uma frase rica em vocabulário, não só uma palavra:
+
+   | Tema | Descrição (texto embedado) |
+   |---|---|
+   | Tecnologia e IA | Tecnologia, inteligência artificial, dados pessoais, internet, telecomunicações, inovação, startups, software, plataformas digitais e regulação de algoritmos. |
+   | Tributário | Tributos, impostos, reforma tributária, carga fiscal, ICMS, IRPF, isenções, incentivos fiscais e arrecadação. |
+   | Saúde | Saúde pública, SUS, medicamentos, planos de saúde, vigilância sanitária, hospitais, vacinas e profissionais de saúde. |
+   | Trabalho e Previdência | Direitos trabalhistas, CLT, emprego, salário mínimo, sindicatos, previdência social, aposentadoria e relações de trabalho. |
+   | Meio Ambiente | Meio ambiente, clima, licenciamento ambiental, desmatamento, saneamento, energia renovável, resíduos e sustentabilidade. |
+   | Economia e Finanças | Economia, mercado financeiro, bancos, crédito, juros, inflação, câmbio, investimentos e orçamento público. |
+   | Educação | Educação básica e superior, escolas, universidades, FIES, professores, currículo, financiamento educacional e ensino. |
+   | Segurança Pública | Segurança pública, polícia, crime, armas, código penal, sistema prisional e combate ao tráfico. |
+   | Agronegócio | Agronegócio, agricultura, pecuária, crédito rural, defensivos, exportação de commodities e produção no campo. |
+   | Infraestrutura e Transporte | Infraestrutura, rodovias, portos, aeroportos, mobilidade urbana, concessões, obras públicas e transporte. |
+   | Direitos e Cidadania | Direitos humanos, igualdade, direitos do consumidor, família, minorias, acesso à justiça e cidadania. |
+
+3. Calcula a **similaridade de cosseno** entre o embedding da ementa e o embedding de cada tema.
+4. O tema de maior similaridade é a classificação; se o melhor score ficar abaixo do limiar `LIMIAR_TEMA` (padrão `0.20`), a proposição recebe o tema `"Outros"`.
+5. Grava `tema`, `tema_score` e `data_tema` em `fato_proposicoes` e salva backup local em JSON.
+
+**Por que cosseno em vez de pedir o tema direto ao LLM?**
+* **Custo**: 1 embedding por ementa é ordens de magnitude mais barato que uma chamada de chat por proposição.
+* **Consistência**: a lista de temas é fixa; um LLM generativo poderia inventar rótulos novos a cada execução. O cosseno sempre escolhe um tema do catálogo controlado.
+* **Auditabilidade**: o score fica salvo em `tema_score`, dando transparência à classificação.
 
 ## <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3PsZHg2Nmxhejc2eHc3bHB6N3lxaGt4cXJiOXNubmR3Ym1zYTMxdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/TKcnPuNL3VdTah6ymA/giphy.gif" alt="dados_7" width="30" height="30" /> Insights Extraídos do Dashboard (LegoDados)
 
